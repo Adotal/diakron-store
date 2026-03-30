@@ -11,7 +11,7 @@ import 'package:go_router/go_router.dart';
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.viewModel});
 
-  final SignupViewmodel viewModel;
+  final SignupViewModel viewModel;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -20,13 +20,13 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   // Controllers
   final TextEditingController _name = TextEditingController(
-    text: 'UserTestName',
+    text: 'StoreName',
   );
   final TextEditingController _surnames = TextEditingController(
-    text: 'UserTestSurname',
+    text: 'StoreSurname',
   );
   final TextEditingController _email = TextEditingController(
-    text: 'adotal1484@gmail.com',
+    text: 'store@gmail.com',
   );
   final TextEditingController _phoneNumber = TextEditingController(
     text: '1234567890',
@@ -37,6 +37,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _confirmPassword = TextEditingController(
     text: '123456789',
   );
+  bool _isPasswordObscured = true;
 
   @override
   void initState() {
@@ -139,18 +140,40 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: Dimens.paddingVertical),
 
                 // Campo Contraseña
-                InputText(
-                  controller: _password,
-                  hintText: AppLocalizations.of(context)!.password,
-                  obscureText: true,
-                ),
+                   InputText(
+            controller: _password,
+            hintText: AppLocalizations.of(context)!.password,
+            obscureText: _isPasswordObscured,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isPasswordObscured ? Icons.visibility_off : Icons.visibility,
+                color: Colors.grey,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isPasswordObscured = !_isPasswordObscured;
+                });
+              },
+            ),
+          ),
                 const SizedBox(height: Dimens.paddingVertical),
                 // Field confirm password
-                InputText(
-                  controller: _confirmPassword,
-                  hintText: AppLocalizations.of(context)!.confirmPassword,
-                  obscureText: true,
-                ),
+                  InputText(
+            controller: _confirmPassword,
+            hintText: AppLocalizations.of(context)!.password,
+            obscureText: _isPasswordObscured,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isPasswordObscured ? Icons.visibility_off : Icons.visibility,
+                color: Colors.grey,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isPasswordObscured = !_isPasswordObscured;
+                });
+              },
+            ),
+          ),
 
                 const SizedBox(height: 35),
 
@@ -220,8 +243,9 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Usuario registrado!')));
+      
 
-      context.go(Routes.login);
+      context.go(Routes.uploadData);
     }
 
     if (widget.viewModel.signup.error) {

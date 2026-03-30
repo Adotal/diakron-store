@@ -9,6 +9,11 @@ class AuthService {
 
   Session? get currentSession => _supabase.auth.currentSession;
 
+    // Get curren user id
+  String? get currentUserId => Supabase.instance.client.auth.currentUser?.id;
+  User? get currentUser => _supabase.auth.currentUser;
+
+
   // Sign in (login)
   Future<Result<AuthResponse>> signInEmailPassword({
     required String email,
@@ -47,8 +52,7 @@ class AuthService {
           // Empieza desactivado porque es solicitud de registro
           'is_active': false,
           // Siempre es admin
-          'user_type': 'admin',
-          'is_superadmin': false,
+          'user_type': 'store',
         },
       );
 

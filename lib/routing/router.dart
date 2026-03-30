@@ -1,5 +1,7 @@
 // Routes manager
 import 'package:diakron_stores/data/repositories/auth/auth_repository.dart';
+import 'package:diakron_stores/data/repositories/user/user_repository.dart';
+import 'package:diakron_stores/models/user/collection_center.dart';
 import 'package:diakron_stores/routing/routes.dart';
 import 'package:diakron_stores/ui/auth/forgot_password/view_models/forgot_password_viewmodel.dart';
 import 'package:diakron_stores/ui/auth/forgot_password/widgets/forgot_password_screen.dart';
@@ -11,14 +13,21 @@ import 'package:diakron_stores/ui/auth/sigunp/view_models/signup_viewmodel.dart'
 import 'package:diakron_stores/ui/auth/sigunp/widgets/signup_screen.dart';
 import 'package:diakron_stores/ui/home/view_models/home_viewmodel.dart';
 import 'package:diakron_stores/ui/home/widgets/home_screen.dart';
+import 'package:diakron_stores/ui/upload_files/widgets/privacy_policy_screen.dart';
+import 'package:diakron_stores/ui/upload_files/widgets/upload_files_pages.dart';
+import 'package:diakron_stores/ui/upload_files/widgets/upload_files_shell.dart';
+import 'package:diakron_stores/ui/wating_approval/widgets/waiting_approval_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-GoRouter router(AuthRepository authRepository) => GoRouter(
+GoRouter router(AuthRepository authRepository, UserRepository userRepository) => GoRouter(
   initialLocation: Routes.home,
   debugLogDiagnostics: true, // TESTING
-  refreshListenable: authRepository,
+  refreshListenable: Listenable.merge([
+   authRepository,
+   userRepository,
+  ]),
   redirect: _redirect,
 
   routes: [
@@ -58,24 +67,57 @@ GoRouter router(AuthRepository authRepository) => GoRouter(
         );
         return ResetPasswordScreen(viewModel: viewModel);
       },
+    ),ShellRoute(
+      builder: (context, state, child) {
+        // Here are progress bar and button
+        return UploadFilesShell(child: child);
+      },
+      routes: [
+        GoRoute(
+          path: Routes.uploadData,
+          builder: (context, state) => const UploadFilesStep1Page(),
+        ),
+        GoRoute(
+          path: Routes.uploadData2,
+          builder: (context, state) => const UploadFilesStep2Page(),
+        ),
+        GoRoute(
+          path: Routes.uploadData3,
+          builder: (context, state) => const UploadFilesStep3Page(),
+        ),
+        GoRoute(
+          path: Routes.privacyPolicy,
+          builder: (context, state) => const PrivacyPolicyScreen(),
+        ),
+      ],
     ),
     GoRoute(
       path: Routes.signup,
       builder: (context, state) {
-        final viewModel = SignupViewmodel(
+        final viewModel = SignupViewModel(
           authRepository: context.read<AuthRepository>(),
         );
         return SignupScreen(viewModel: viewModel);
+      },
+    ),
+    GoRoute(
+      path: Routes.waitingApproval,
+      builder: (context, state) {
+        // final viewModel = SignupViewModel(
+        //   authRepository: context.read<AuthRepository>(),
+        // );
+        return WaitingApprovalPage();
       },
     ),
   ],
 );
 
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
+  final userRepo = context.read<UserRepository>();
   final authRepo = context.read<AuthRepository>();
   final bool loggedIn = authRepo.isAuthenticated;
-  
-  // Locations
+
+  // // Locations
   final bool isAtLogin = state.matchedLocation == Routes.login;
   final bool isAtReset = state.matchedLocation == Routes.resetpassword;
   final bool isAtForgot = state.matchedLocation == Routes.forgotpassword;
@@ -90,43 +132,30 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   // 2. If not logged in, and not on an "Auth" page (login, signup, forgot), go to Login
   if (!loggedIn) {
     if (isAtLogin || isAtForgot || isAtSignup || isAtReset) {
-      return null; 
+      return null;
     }
     return Routes.login;
   }
 
-  // 3. If logged in but trying to hit the login or signup page, go Home
-  // if (loggedIn && (isAtLogin || isAtSignup)) {
-  //   return Routes.home;
-  // }
+  //final ValidationStatus validationStatus = userRepo.validationStatus!;
+  final validationStatus = await userRepo.getValidationStatus(authRepo.userId!);
 
+  final bool atUploadData = state.matchedLocation.startsWith(
+    Routes.uploadDataRoot,
+  );
+
+  switch (validationStatus) {
+    case ValidationStatus.approved:
+      return Routes.home;
+    case ValidationStatus.uploading:
+      // If not already in a uploading proccess redirect to it
+      if (!atUploadData) {
+        return Routes.uploadData;
+      }
+    case ValidationStatus.pending:
+      return Routes.waitingApproval;
+    case ValidationStatus.denied:
+    // return Routes.denied;
+  }
   return null;
 }
-
-// Future<String?> _redirect(BuildContext context, GoRouterState state) async {
-//   // if the user is not logged in, they need to login
-//   final bool loggedIn = context.read<AuthRepository>().isAuthenticated;
-//   final bool loggingIn = (state.matchedLocation == Routes.login);
-
-//   // Deep Link for Password Reset
-//   // Supabase sends the user to /callback by default;
-//   // check if the incoming path matches your reset route.
-//   final bool isResetting = (state.matchedLocation == Routes.resetpassword);
-
-//   if (context.read<AuthRepository>().isRecoveringPassword) {
-//     return Routes.resetpassword; // Push them to the reset screen
-//   }
-
-//   // If not logged in and its not already on login/reset page, force login
-//   // if (!loggedIn && loggingIn && !isResetting) {
-//   //   return Routes.login;
-//   // }
-
-//   // If logged in and trying to go to login page, send home
-//   // if (loggedIn && loggingIn && !isResetting) {
-//   //   return Routes.home;
-//   // }
-
-//   // No need to redirect at all
-//   return null;
-// }

@@ -1,8 +1,11 @@
 import 'package:diakron_stores/data/repositories/auth/auth_repository.dart';
+import 'package:diakron_stores/data/repositories/user/user_repository.dart';
 import 'package:diakron_stores/data/services/auth_service.dart';
+import 'package:diakron_stores/data/services/database_service.dart';
 import 'package:diakron_stores/l10n/app_localizations.dart';
 import 'package:diakron_stores/routing/router.dart';
 import 'package:diakron_stores/ui/core/themes/colors.dart';
+import 'package:diakron_stores/ui/upload_files/view_models/upload_files_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -26,9 +29,14 @@ Future<void> main() async {
 
   runApp(
     MultiProvider(
-      providers: [
+       providers: [
         // Provider(create: (context) => AuthService()),
         Provider<AuthService>(create: (_) => AuthService()),
+        Provider<DatabaseService>(create: (_) => DatabaseService()),
+        ChangeNotifierProvider(
+          create: (context) =>
+              UserRepository(databaseService: context.read<DatabaseService>()),
+        ),
         // AuthRepository is a ChangeNotifier, so we MUST use ChangeNotifierProxyProvider
         ChangeNotifierProxyProvider<AuthService, AuthRepository>(
           create: (context) =>
@@ -39,6 +47,10 @@ Future<void> main() async {
                 AuthRepository(authService: authService);
           },
         ),
+        ChangeNotifierProvider(create: (context) => UploadFilesViewModel(     
+          authRepository: context.read<AuthRepository>(),
+          userRepository: context.read<UserRepository>(),
+        )),
       ],
       child: const MainApp(),
     ),
@@ -53,6 +65,7 @@ class MainApp extends StatelessWidget {
     // We use context.read() here because the Router handles its own
     // listeners via the refreshListenable property we set up earlier.
     final authRepository = context.read<AuthRepository>();
+    final userRepository = context.read<UserRepository>();
 
     return MaterialApp.router(
       // For localization and internation
@@ -80,7 +93,7 @@ class MainApp extends StatelessWidget {
         fontFamily: 'Arial', // Fuente genérica
       ),
 
-      routerConfig: router(authRepository),
+      routerConfig: router(authRepository, userRepository),
     );
   }
 }
